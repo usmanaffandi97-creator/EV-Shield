@@ -966,5 +966,17 @@
             document.getElementById('exp-res-cable').innerText = cable;
         }
     </script>
+<script>
+  // Mendaftarkan Service Worker otomatis saat aplikasi dibuka
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        console.log('Service Worker Aktif!', reg.scope);
+      }).catch(err => {
+        console.error('Gagal daftar Service Worker:', err);
+      });
+    });
+  }
+</script>
 </body>
 </html>
