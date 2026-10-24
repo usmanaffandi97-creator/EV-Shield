@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EV-Shield V4.0 - Safety & PLN Guard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            bg: '#0B0F17',
+                            card: '#131A29',
+                            cardHover: '#1C263B',
+                            border: '#232F48',
+                            neon: '#00FF9D',
+                            blue: '#00E5FF',
+                            yellow: '#FFDD57',
+                            danger: '#FF3860'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0B0F17;
+            color: #F1F5F9;
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Glassmorphism subtle effects */
+        .glass-panel {
+            background: rgba(19, 26, 41, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(35, 47, 72, 0.8);
+        }
+
+        .glass-card {
+            background: rgba(28, 38, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Selection Glow States */
+        .card-active-neon {
+            border-color: #00FF9D !important;
+            background: rgba(0, 255, 157, 0.08) !important;
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.15);
+        }
+
+        .card-active-blue {
+            border-color: #00E5FF !important;
+            background: rgba(0, 229, 255, 0.08) !important;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
+        }
+
+        .card-active-yellow {
+            border-color: #FFDD57 !important;
+            background: rgba(255, 221, 87, 0.08) !important;
+            box-shadow: 0 0 20px rgba(255, 221, 87, 0.15);
+        }
+
+        /* Status Glow Effects */
+        .glow-neon { box-shadow: 0 0 25px rgba(0, 255, 157, 0.25); }
+        .glow-yellow { box-shadow: 0 0 25px rgba(255, 221, 87, 0.25); }
+        .glow-danger { box-shadow: 0 0 25px rgba(255, 56, 96, 0.25); }
+
+        /* Hide scrollbars for clean UI */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between pb-24 md:pb-6 selection:bg-cyber-neon selection:text-cyber-bg">
+
+    <!-- TOP HEADER -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-cyber-border">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyber-neon to-cyber-blue p-0.5 shadow-lg shadow-cyber-neon/20 flex items-center justify-center">
+                    <div class="w-full h-full bg-cyber-bg rounded-[14px] flex items-center justify-center">
+                        <i data-lucide="zap" class="w-5 h-5 text-cyber-neon fill-current"></i>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-base font-extrabold tracking-tight text-white">EV-Shield</h1>
+                        <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-cyber-neon/10 text-cyber-neon border border-cyber-neon/30">V4.0 ULTIMATE</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">Proteksi Cas Motor Listrik & PLN Rumah</p>
+                </div>
+            </div>
+
+            <!-- Mode Switcher (Pemula vs Pakar) -->
+            <div class="bg-cyber-bg p-1 rounded-xl border border-cyber-border flex items-center">
+                <button id="btn-expert-off" onclick="toggleExpertMode(false)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-cyber-neon text-cyber-bg">
+                    Pemula
+                </button>
+                <button id="btn-expert-on" onclick="toggleExpertMode(true)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white">
+                    Pakar (Teknis)
+                </button>
+            </div>
+        </div>
+
+        <!-- DESKTOP TOP NAV TABS (Hidden on Mobile) -->
+        <div class="hidden md:block border-t border-cyber-border/50 bg-cyber-card/30">
+            <div class="max-w-6xl mx-auto px-4 flex gap-6">
+                <button onclick="switchTab('wizard')" id="dtab-wizard" class="py-3 text-xs font-bold border-b-2 border-cyber-neon text-cyber-neon flex items-center gap-2 transition-all">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i> Asisten Pemula & Charger
+                </button>
+                <button onclick="switchTab('pln')" id="dtab-pln" class="py-3 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-2 transition-all">
+                    <i data-lucide="shield-alert" class="w-4 h-4"></i> PLN Guard & Kabel Tembok
+                </button>
+                <button onclick="switchTab('v2l')" id="dtab-v2l" class="py-3 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-2 transition-all">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Inverter DC-AC / V2L
+                </button>
+                <button onclick="switchTab('battery')" id="dtab-battery" class="py-3 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-2 transition-all">
+                    <i data-lucide="heart-pulse" class="w-4 h-4"></i> Tips Awet Baterai
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="max-w-6xl mx-auto px-4 pt-4 pb-6 w-full flex-grow">
+
+        <!-- ================================================================= -->
+        <!-- TAB 1: ASISTEN PEMULA & CHARGER SELECTION                         -->
+        <!-- ================================================================= -->
+        <div id="tab-content-wizard" class="space-y-5">
+            
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                
+                <!-- Left: Configuration Wizard -->
+                <div class="lg:col-span-7 space-y-4">
+                    
+                    <!-- STEP 1: PRESET MOTOR -->
+                    <div class="glass-panel p-4 rounded-2xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-wider text-cyber-neon flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded-full bg-cyber-neon/20 text-cyber-neon text-[10px] flex items-center justify-center font-black">1</span>
+                                Pilih Motor Listrik Kamu:
+                            </span>
+                            <span id="label-selected-voltage" class="text-[10px] text-cyber-blue font-bold px-2 py-0.5 rounded bg-cyber-blue/10 border border-cyber-blue/30">72V Nominal</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <button onclick="selectMotor('alva', 72, 30)" id="m-alva" class="glass-card card-active-neon p-3 rounded-xl text-left hover:bg-cyber-cardHover">
+                                <div class="font-bold text-xs text-white">Alva Cervo / One</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">72V 30Ah (Dual Li)</div>
+                            </button>
+                            <button onclick="selectMotor('polytron', 72, 52)" id="m-polytron" class="glass-card p-3 rounded-xl text-left hover:bg-cyber-cardHover">
+                                <div class="font-bold text-xs text-white">Polytron Fox-R/S</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">72V 52Ah (High)</div>
+                            </button>
+                            <button onclick="selectMotor('gesits', 72, 20)" id="m-gesits" class="glass-card p-3 rounded-xl text-left hover:bg-cyber-cardHover">
+                                <div class="font-bold text-xs text-white">Gesits G1 / Raya</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">72V 20Ah</div>
+                            </button>
+                            <button onclick="selectMotor('smooth', 60, 22)" id="m-smooth" class="glass-card p-3 rounded-xl text-left hover:bg-cyber-cardHover">
+                                <div class="font-bold text-xs text-white">Smooth Z3 / Tempur</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">60V 22Ah Swappable</div>
+                            </button>
+                            <button onclick="selectMotor('yadea', 72, 26)" id="m-yadea" class="glass-card p-3 rounded-xl text-left hover:bg-cyber-cardHover">
+                                <div class="font-bold text-xs text-white">Yadea T9 / E8S</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">72V 26Ah Graphene</div>
+                            </button>
+                            <button onclick="selectMotor('custom', 84, 40)" id="m-custom" class="glass-card p-3 rounded-xl text-left hover:bg-cyber-cardHover">
+                                <div class="font-bold text-xs text-white">Custom / Maxi EV</div>
+                                <div class="text-[10px] text-cyber-yellow mt-0.5">84V - 96V High Voltage</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: KECEPATAN CHARGER -->
+                    <div class="glass-panel p-4 rounded-2xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-wider text-cyber-neon flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded-full bg-cyber-neon/20 text-cyber-neon text-[10px] flex items-center justify-center font-black">2</span>
+                                Kecepatan Charger Yang Dipakai:
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <button onclick="selectCharger('slow', 3)" id="c-slow" class="glass-card card-active-neon p-2.5 rounded-xl text-center hover:bg-cyber-cardHover">
+                                <i data-lucide="coffee" class="w-5 h-5 mx-auto mb-1 text-cyber-neon"></i>
+                                <div class="font-bold text-xs text-white">Slow (3A)</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">~250-300 Watt</div>
+                            </button>
+                            <button onclick="selectCharger('std', 6)" id="c-std" class="glass-card p-2.5 rounded-xl text-center hover:bg-cyber-cardHover">
+                                <i data-lucide="zap" class="w-5 h-5 mx-auto mb-1 text-cyber-blue"></i>
+                                <div class="font-bold text-xs text-white">Standar (6A)</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">~500-600 Watt</div>
+                            </button>
+                            <button onclick="selectCharger('fast', 15)" id="c-fast" class="glass-card p-2.5 rounded-xl text-center hover:bg-cyber-cardHover">
+                                <i data-lucide="flame" class="w-5 h-5 mx-auto mb-1 text-cyber-yellow"></i>
+                                <div class="font-bold text-xs text-white">Fast (15A)</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">~1200 Watt</div>
+                            </button>
+                            <button onclick="selectCharger('super', 25)" id="c-super" class="glass-card p-2.5 rounded-xl text-center hover:bg-cyber-cardHover">
+                                <i data-lucide="gauge" class="w-5 h-5 mx-auto mb-1 text-cyber-danger"></i>
+                                <div class="font-bold text-xs text-white">Super (25A+)</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">~2000 Watt+</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3: KABEL & COLOKAN YANG DIGUNAKAN -->
+                    <div class="glass-panel p-4 rounded-2xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-wider text-cyber-neon flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded-full bg-cyber-neon/20 text-cyber-neon text-[10px] flex items-center justify-center font-black">3</span>
+                                Pilihan Kabel Extender / Colokan Rumah:
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <button onclick="selectCable('unknown')" id="k-unknown" class="glass-card p-3 rounded-xl text-left flex items-start gap-3 hover:bg-cyber-cardHover">
+                                <div class="p-2 rounded-lg bg-slate-800 text-slate-400 mt-0.5"><i data-lucide="help-circle" class="w-5 h-5"></i></div>
+                                <div>
+                                    <div class="font-bold text-xs text-white">Ragu / Tidak Tahu Ukuran</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5">Asumsi kabel tipis 0.75 mm² (Maks 5A / ~1000W)</div>
+                                </div>
+                            </button>
+
+                            <button onclick="selectCable('thin')" id="k-thin" class="glass-card p-3 rounded-xl text-left flex items-start gap-3 hover:bg-cyber-cardHover">
+                                <div class="p-2 rounded-lg bg-cyber-yellow/10 text-cyber-yellow mt-0.5"><i data-lucide="cable" class="w-5 h-5"></i></div>
+                                <div>
+                                    <div class="font-bold text-xs text-white">Kabel Tipis Extender (0.75 mm²)</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5">Kabel gulung / rakitan tipis murah (Maks 5A)</div>
+                                </div>
+                            </button>
+
+                            <button onclick="selectCable('std')" id="k-std" class="glass-card card-active-neon p-3 rounded-xl text-left flex items-start gap-3 hover:bg-cyber-cardHover">
+                                <div class="p-2 rounded-lg bg-cyber-neon/10 text-cyber-neon mt-0.5"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div>
+                                <div>
+                                    <div class="font-bold text-xs text-white">Kabel Standar SNI (1.5 mm²)</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5">Kabel NYM tembok / stopkontak SNI (Maks 10A)</div>
+                                </div>
+                            </button>
+
+                            <button onclick="selectCable('heavy')" id="k-heavy" class="glass-card p-3 rounded-xl text-left flex items-start gap-3 hover:bg-cyber-cardHover">
+                                <div class="p-2 rounded-lg bg-cyber-blue/10 text-cyber-blue mt-0.5"><i data-lucide="shield-check" class="w-5 h-5"></i></div>
+                                <div>
+                                    <div class="font-bold text-xs text-white">Kabel Tebal PUIL (2.5 mm² - 4 mm²)</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5">Kabel khusus AC / Fast Charge Heavy (Maks 16A-25A)</div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Right: Safety Traffic Light Result Panel -->
+                <div class="lg:col-span-5">
+                    <div id="safety-card-box" class="glass-panel p-6 rounded-3xl border-2 border-cyber-neon glow-neon space-y-5 transition-all sticky top-20">
+                        
+                        <div class="text-center space-y-3">
+                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">ANALISIS KEAMANAN REAL-TIME</span>
+                            
+                            <!-- Big Status Icon -->
+                            <div id="status-icon-bg" class="w-20 h-20 mx-auto rounded-3xl bg-cyber-neon/10 border border-cyber-neon/40 flex items-center justify-center">
+                                <i id="status-icon" data-lucide="shield-check" class="w-10 h-10 text-cyber-neon"></i>
+                            </div>
+
+                            <h2 id="status-title" class="text-2xl font-black text-cyber-neon tracking-tight">KABEL & COLOKAN AMAN!</h2>
+                            <p id="status-desc" class="text-xs text-slate-300 leading-relaxed">
+                                Kombinasi arus charger dan ukuran kabel sangat seimbang. Risiko leleh 0% dan aman untuk pengisian rutin.
+                            </p>
+                        </div>
+
+                        <!-- Technical Stats Grid -->
+                        <div class="grid grid-cols-2 gap-2 pt-2 text-xs border-t border-cyber-border">
+                            <div class="glass-card p-2.5 rounded-xl">
+                                <span class="text-[10px] text-slate-400 block">Daya Tarikan PLN</span>
+                                <strong id="res-watt" class="text-sm text-cyber-blue font-bold">~288 Watt</strong>
+                            </div>
+                            <div class="glass-card p-2.5 rounded-xl">
+                                <span class="text-[10px] text-slate-400 block">Arus AC (Ampere)</span>
+                                <strong id="res-amps" class="text-sm text-cyber-neon font-bold">~1.31 A</strong>
+                            </div>
+                            <div class="glass-card p-2.5 rounded-xl">
+                                <span class="text-[10px] text-slate-400 block">Estimasi Isi (0-100%)</span>
+                                <strong id="res-time" class="text-sm text-white font-bold">~10.0 Jam</strong>
+                            </div>
+                            <div class="glass-card p-2.5 rounded-xl">
+                                <span class="text-[10px] text-slate-400 block">Biaya PLN (Rp 1.444/kWh)</span>
+                                <strong id="res-cost" class="text-sm text-cyber-yellow font-bold">~Rp 3.100</strong>
+                            </div>
+                        </div>
+
+                        <!-- Action Recommendation Badge -->
+                        <div id="action-badge" class="p-3 rounded-xl bg-cyber-neon/10 border border-cyber-neon/30 text-cyber-neon text-xs font-semibold flex items-center justify-center gap-2 text-center">
+                            <i data-lucide="check-circle" class="w-4 h-4 flex-shrink-0"></i> 
+                            <span>Boleh Ditinggal Tidur Semalaman</span>
+                        </div>
+
+                        <button onclick="switchTab('pln')" class="w-full py-3 rounded-xl bg-cyber-cardHover border border-cyber-border text-xs font-bold text-white hover:text-cyber-neon flex items-center justify-center gap-2 transition-all">
+                            Cek Beban Meteran Rumah (PLN Guard) <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- TAB 2: PLN GUARD & BEBAN RUMAH                                    -->
+        <!-- ================================================================= -->
+        <div id="tab-content-pln" class="space-y-5 hidden">
+            
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                
+                <!-- Left: House Meter & Appliances Selector -->
+                <div class="lg:col-span-7 space-y-4">
+                    
+                    <!-- Kapasitas Daya PLN Meteran -->
+                    <div class="glass-panel p-4 rounded-2xl space-y-3">
+                        <label class="text-xs font-bold uppercase tracking-wider text-cyber-blue block">
+                            Pilih Daya Terpasang Meteran PLN Rumah:
+                        </label>
+                        <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            <button onclick="selectPLN(450)" id="pln-450" class="glass-card p-2.5 rounded-xl font-bold text-xs text-white hover:bg-cyber-cardHover">450 VA</button>
+                            <button onclick="selectPLN(900)" id="pln-900" class="glass-card card-active-blue p-2.5 rounded-xl font-bold text-xs text-white hover:bg-cyber-cardHover">900 VA</button>
+                            <button onclick="selectPLN(1300)" id="pln-1300" class="glass-card p-2.5 rounded-xl font-bold text-xs text-white hover:bg-cyber-cardHover">1.300 VA</button>
+                            <button onclick="selectPLN(2200)" id="pln-2200" class="glass-card p-2.5 rounded-xl font-bold text-xs text-white hover:bg-cyber-cardHover">2.200 VA</button>
+                            <button onclick="selectPLN(3500)" id="pln-3500" class="glass-card p-2.5 rounded-xl font-bold text-xs text-white hover:bg-cyber-cardHover">3.500 VA</button>
+                            <button onclick="selectPLN(5500)" id="pln-5500" class="glass-card p-2.5 rounded-xl font-bold text-xs text-white hover:bg-cyber-cardHover">5.500 VA</button>
+                            <button onclick="selectPLN(7700)" id="pln-7700" class="glass-card p-2.5 rounded-xl font-bold text-xs text-white hover:bg-cyber-cardHover">7.700 VA</button>
+                        </div>
+                    </div>
+
+                    <!-- Toggle Perangkat Rumah Yang Menyala -->
+                    <div class="glass-panel p-4 rounded-2xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-bold uppercase tracking-wider text-cyber-blue block">
+                                Tap Perangkat Rumah Yang SEDANG MENYALA:
+                            </label>
+                            <span class="text-[10px] text-slate-400">Tap untuk aktif/nonaktifkan</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <button onclick="toggleDevice('ac')" id="dev-ac" class="glass-card card-active-blue p-3 rounded-xl text-left flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-xs text-white">AC 1/2-1 PK</div>
+                                    <div class="text-[10px] text-slate-400">~400 Watt</div>
+                                </div>
+                                <i data-lucide="snowflake" class="w-4 h-4 text-cyber-blue"></i>
+                            </button>
+
+                            <button onclick="toggleDevice('rice')" id="dev-rice" class="glass-card p-3 rounded-xl text-left flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-xs text-white">Rice Cooker</div>
+                                    <div class="text-[10px] text-slate-400">~380 Watt</div>
+                                </div>
+                                <i data-lucide="utensils" class="w-4 h-4 text-slate-500"></i>
+                            </button>
+
+                            <button onclick="toggleDevice('fridge')" id="dev-fridge" class="glass-card card-active-blue p-3 rounded-xl text-left flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-xs text-white">Kulkas</div>
+                                    <div class="text-[10px] text-slate-400">~120 Watt</div>
+                                </div>
+                                <i data-lucide="refrigerator" class="w-4 h-4 text-cyber-blue"></i>
+                            </button>
+
+                            <button onclick="toggleDevice('pump')" id="dev-pump" class="glass-card p-3 rounded-xl text-left flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-xs text-white">Pompa Air</div>
+                                    <div class="text-[10px] text-slate-400">~350 Watt</div>
+                                </div>
+                                <i data-lucide="droplet" class="w-4 h-4 text-slate-500"></i>
+                            </button>
+
+                            <button onclick="toggleDevice('wm')" id="dev-wm" class="glass-card p-3 rounded-xl text-left flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-xs text-white">Mesin Cuci</div>
+                                    <div class="text-[10px] text-slate-400">~300 Watt</div>
+                                </div>
+                                <i data-lucide="washing-machine" class="w-4 h-4 text-slate-500"></i>
+                            </button>
+
+                            <button onclick="toggleDevice('disp')" id="dev-disp" class="glass-card p-3 rounded-xl text-left flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-xs text-white">Dispenser Hot</div>
+                                    <div class="text-[10px] text-slate-400">~350 Watt</div>
+                                </div>
+                                <i data-lucide="coffee" class="w-4 h-4 text-slate-500"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Right: MCB Load Gauge & Diagnosis -->
+                <div class="lg:col-span-5">
+                    <div class="glass-panel p-6 rounded-3xl space-y-5 sticky top-20">
+                        
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">BEBAN METERAN MCB PLN</span>
+                            <span id="pln-amp-badge" class="text-xs font-bold px-2 py-0.5 rounded bg-cyber-cardLight text-cyber-neon border border-cyber-border">2.36 A / 4.09 A</span>
+                        </div>
+
+                        <!-- Progress Bar Container -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-xs font-bold">
+                                <span class="text-white">Total Daya Beban:</span>
+                                <span id="mcb-watt-text" class="text-cyber-neon">520 W / 900 W</span>
+                            </div>
+                            <div class="w-full bg-cyber-bg rounded-full h-4 p-0.5 border border-cyber-border overflow-hidden">
+                                <div id="mcb-bar" class="bg-cyber-neon h-full rounded-full transition-all duration-500" style="width: 57%;"></div>
+                            </div>
+                            <div class="flex justify-between text-[10px] text-slate-400">
+                                <span>0 W</span>
+                                <span id="mcb-safe-text">Safety Limit: 765 W</span>
+                                <span id="mcb-max-text">900 VA</span>
+                            </div>
+                        </div>
+
+                        <!-- Diagnosis Box -->
+                        <div id="mcb-diag-box" class="p-4 rounded-2xl bg-cyber-neon/10 border border-cyber-neon/30 text-xs space-y-2">
+                            <div id="mcb-diag-title" class="font-black text-cyber-neon flex items-center gap-2 text-sm">
+                                <i data-lucide="shield-check" class="w-5 h-5"></i> AMAN! MCB TIDAK AKAN JEPRET
+                            </div>
+                            <p id="mcb-diag-desc" class="text-slate-300 leading-relaxed">
+                                Sisa daya rumahmu masih ada <strong>380 Watt</strong>. Sangat aman mengecas motor tanpa mematikan peralatan listrik lain.
+                            </p>
+                        </div>
+
+                        <!-- Synchronized Warning From Cable Selection -->
+                        <div id="cable-sync-warning" class="p-3 rounded-xl bg-cyber-card border border-cyber-border text-xs text-slate-400 flex items-start gap-2">
+                            <i data-lucide="info" class="w-4 h-4 text-cyber-blue flex-shrink-0 mt-0.5"></i>
+                            <span id="cable-sync-text">Kabel dipilih: Standard SNI (1.5mm²). Aman menampung hingga 10A (~2200W).</span>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- TAB 3: INVERTER DC-AC / V2L (MATI LAMPU)                          -->
+        <!-- ================================================================= -->
+        <div id="tab-content-v2l" class="space-y-5 hidden">
+            
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                
+                <div class="lg:col-span-7 glass-panel p-5 rounded-2xl space-y-4">
+                    <div>
+                        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i data-lucide="refresh-cw" class="w-5 h-5 text-cyber-blue"></i> Simulasi Listrik Cadangan V2L (Vehicle-to-Load)
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">Gunakan aki/baterai motor listrik untuk menyalakan alat rumah saat listrik PLN padam.</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        <button onclick="toggleV2L('tv')" id="v2l-tv" class="glass-card card-active-blue p-3 rounded-xl text-center space-y-1">
+                            <i data-lucide="tv" class="w-6 h-6 mx-auto text-cyber-blue"></i>
+                            <div class="font-bold text-xs text-white">TV LED</div>
+                            <div class="text-[10px] text-slate-400">~60 Watt</div>
+                        </button>
+
+                        <button onclick="toggleV2L('lamp')" id="v2l-lamp" class="glass-card card-active-blue p-3 rounded-xl text-center space-y-1">
+                            <i data-lucide="lightbulb" class="w-6 h-6 mx-auto text-cyber-neon"></i>
+                            <div class="font-bold text-xs text-white">3 Lampu LED</div>
+                            <div class="text-[10px] text-slate-400">~30 Watt</div>
+                        </button>
+
+                        <button onclick="toggleV2L('phone')" id="v2l-phone" class="glass-card card-active-blue p-3 rounded-xl text-center space-y-1">
+                            <i data-lucide="smartphone" class="w-6 h-6 mx-auto text-cyber-blue"></i>
+                            <div class="font-bold text-xs text-white">2 Cas HP</div>
+                            <div class="text-[10px] text-slate-400">~20 Watt</div>
+                        </button>
+
+                        <button onclick="toggleV2L('fan')" id="v2l-fan" class="glass-card p-3 rounded-xl text-center space-y-1">
+                            <i data-lucide="fan" class="w-6 h-6 mx-auto text-slate-500"></i>
+                            <div class="font-bold text-xs text-white">Kipas Angin</div>
+                            <div class="text-[10px] text-slate-400">~45 Watt</div>
+                        </button>
+
+                        <button onclick="toggleV2L('fridge')" id="v2l-fridge" class="glass-card p-3 rounded-xl text-center space-y-1">
+                            <i data-lucide="refrigerator" class="w-6 h-6 mx-auto text-slate-500"></i>
+                            <div class="font-bold text-xs text-white">Kulkas 1 Pintu</div>
+                            <div class="text-[10px] text-slate-400">~120 Watt</div>
+                        </button>
+
+                        <button onclick="toggleV2L('rice')" id="v2l-rice" class="glass-card p-3 rounded-xl text-center space-y-1">
+                            <i data-lucide="utensils" class="w-6 h-6 mx-auto text-slate-500"></i>
+                            <div class="font-bold text-xs text-white">Magic Com</div>
+                            <div class="text-[10px] text-slate-400">~350 Watt</div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-5 glass-panel p-6 rounded-3xl text-center space-y-5 flex flex-col justify-between">
+                    <div>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-cyber-neon">ESTIMASI KETAHANAN BATERAI</span>
+                        <h3 id="v2l-hours-text" class="text-4xl font-black text-white mt-2">~16.3 Jam</h3>
+                        <p id="v2l-motor-desc" class="text-xs text-slate-400 mt-1">Menggunakan baterai motor 72V 30Ah (Alva Cervo)</p>
+                    </div>
+
+                    <div class="glass-card p-4 rounded-xl text-xs text-left space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Total Beban Peralatan:</span>
+                            <span id="v2l-watt-total" class="font-bold text-cyber-blue">110 Watt</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Arus Serapan Baterai DC:</span>
+                            <span id="v2l-dc-amps" class="font-bold text-cyber-neon">1.52 Ampere</span>
+                        </div>
+                    </div>
+
+                    <p class="text-[10px] text-slate-500 italic">
+                        *Membutuhkan modul Inverter DC-to-AC Pure Sine Wave yang disesuaikan dengan voltase baterai motor Anda.
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- TAB 4: LONGEVITY CHECKLIST (TIPS BATERAI AWET)                   -->
+        <!-- ================================================================= -->
+        <div id="tab-content-battery" class="space-y-5 hidden">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                
+                <div class="glass-panel p-5 rounded-2xl space-y-3">
+                    <h3 class="font-bold text-white text-xs uppercase tracking-wider text-cyber-neon flex items-center gap-2">
+                        <i data-lucide="check-square" class="w-4 h-4"></i> Checklist Rutin Menjaga Baterai
+                    </h3>
+
+                    <div class="space-y-2 text-xs">
+                        <label class="flex items-start gap-3 p-3 rounded-xl bg-cyber-card/60 border border-cyber-border cursor-pointer">
+                            <input type="checkbox" checked class="mt-0.5 rounded border-slate-700 text-cyber-neon focus:ring-0">
+                            <span class="text-slate-300"><strong>Aturan Ideal 20% - 80%:</strong> Jangan biarkan baterai sering 0% atau disimpan 100% terlalu lama jika motor jarang dipakai.</span>
+                        </label>
+                        <label class="flex items-start gap-3 p-3 rounded-xl bg-cyber-card/60 border border-cyber-border cursor-pointer">
+                            <input type="checkbox" checked class="mt-0.5 rounded border-slate-700 text-cyber-neon focus:ring-0">
+                            <span class="text-slate-300"><strong>Suhu Dingin (Cooldown):</strong> Istirahatkan motor 15 menit setelah perjalanan kencang sebelum langsung menancapkan charger.</span>
+                        </label>
+                        <label class="flex items-start gap-3 p-3 rounded-xl bg-cyber-card/60 border border-cyber-border cursor-pointer">
+                            <input type="checkbox" class="mt-0.5 rounded border-slate-700 text-cyber-neon focus:ring-0">
+                            <span class="text-slate-300"><strong>Hindari Sinar Matahari Terik:</strong> Parkir di tempat teduh saat ngecas agar sel Lithium tidak mengalami thermal stress.</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl space-y-3">
+                    <h3 class="font-bold text-white text-xs uppercase tracking-wider text-cyber-blue flex items-center gap-2">
+                        <i data-lucide="activity" class="w-4 h-4"></i> Dampak C-Rate Charger
+                    </h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Makin cepat arus cas (Fast Charge), makin tinggi tekanan $C\text{-Rate}$ pada sel baterai.
+                    </p>
+
+                    <div class="p-3.5 rounded-xl bg-cyber-card border border-cyber-border space-y-2 text-xs">
+                        <div class="font-bold text-cyber-neon">Saran Penggunaan Charger:</div>
+                        <p class="text-slate-400 leading-relaxed">
+                            Gunakan **Slow Charge (3A-6A)** untuk pengisian harian di rumah, dan manfaatkan **Fast Charge (15A+)** hanya ketika dalam kondisi mendesak atau perjalanan jauh.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- EXPERT MODE PANEL (TEKNIS FORMULA)                                -->
+        <!-- ================================================================= -->
+        <div id="expert-panel-view" class="glass-panel p-5 rounded-2xl space-y-4 hidden mt-6 border-cyber-blue/40">
+            <div class="flex items-center justify-between border-b border-cyber-border pb-3">
+                <span class="text-xs font-bold text-cyber-blue uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="cpu" class="w-4 h-4"></i> Kalkulator Teknis Elektro & Fisika Terapan
+                </span>
+                <span class="text-[10px] text-slate-400">Formula Dinamis</span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div>
+                    <label class="text-slate-400 block mb-1">Voltase Baterai (DC V)</label>
+                    <input type="number" id="exp-v" value="72" oninput="recalcExpert()" class="w-full bg-cyber-bg border border-cyber-border rounded-lg p-2 font-bold text-cyber-neon focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-slate-400 block mb-1">Arus Output Charger (DC A)</label>
+                    <input type="number" id="exp-a" value="3" oninput="recalcExpert()" class="w-full bg-cyber-bg border border-cyber-border rounded-lg p-2 font-bold text-cyber-neon focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-slate-400 block mb-1">Kapasitas Baterai (Ah)</label>
+                    <input type="number" id="exp-ah" value="30" oninput="recalcExpert()" class="w-full bg-cyber-bg border border-cyber-border rounded-lg p-2 font-bold text-cyber-neon focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-slate-400 block mb-1">Efisiensi Charger (%)</label>
+                    <input type="number" id="exp-eff" value="88" oninput="recalcExpert()" class="w-full bg-cyber-bg border border-cyber-border rounded-lg p-2 font-bold text-cyber-neon focus:outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-xs">
+                <div class="glass-card p-2.5 rounded-lg">
+                    <span class="text-[10px] text-slate-400 block">Daya DC Output</span>
+                    <strong id="exp-res-dcw" class="text-sm text-cyber-neon font-bold">216 W</strong>
+                </div>
+                <div class="glass-card p-2.5 rounded-lg">
+                    <span class="text-[10px] text-slate-400 block">Daya AC Input PLN</span>
+                    <strong id="exp-res-acw" class="text-sm text-cyber-blue font-bold">245 W</strong>
+                </div>
+                <div class="glass-card p-2.5 rounded-lg">
+                    <span class="text-[10px] text-slate-400 block">C-Rate Pengisian</span>
+                    <strong id="exp-res-crate" class="text-sm text-cyber-yellow font-bold">0.10 C</strong>
+                </div>
+                <div class="glass-card p-2.5 rounded-lg">
+                    <span class="text-[10px] text-slate-400 block">Penampang Kabel Min.</span>
+                    <strong id="exp-res-cable" class="text-sm text-white font-bold">0.75 mm²</strong>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MOBILE BOTTOM NAVIGATION BAR -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-panel border-t border-cyber-border px-2 py-1.5 flex justify-around items-center">
+        <button onclick="switchTab('wizard')" id="mb-wizard" class="flex flex-col items-center gap-1 p-1.5 text-cyber-neon">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+            <span class="text-[9px] font-bold">Charger</span>
+        </button>
+        <button onclick="switchTab('pln')" id="mb-pln" class="flex flex-col items-center gap-1 p-1.5 text-slate-400">
+            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+            <span class="text-[9px] font-bold">PLN Guard</span>
+        </button>
+        <button onclick="switchTab('v2l')" id="mb-v2l" class="flex flex-col items-center gap-1 p-1.5 text-slate-400">
+            <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+            <span class="text-[9px] font-bold">V2L Mati Lampu</span>
+        </button>
+        <button onclick="switchTab('battery')" id="mb-battery" class="flex flex-col items-center gap-1 p-1.5 text-slate-400">
+            <i data-lucide="heart-pulse" class="w-5 h-5"></i>
+            <span class="text-[9px] font-bold">Tips Awet</span>
+        </button>
+    </nav>
+
+    <!-- JAVASCRIPT LOGIC ENGINE -->
+    <script>
+        // Central State Engine
+        let state = {
+            motorType: 'alva',
+            voltage: 72,
+            batteryAh: 30,
+            chargerType: 'slow',
+            chargerAmps: 3,
+            cableType: 'std', // unknown, thin, std, heavy
+            plnCapacity: 900,
+            appliances: {
+                ac: true,
+                rice: false,
+                fridge: true,
+                pump: false,
+                wm: false,
+                disp: false
+            },
+            v2lItems: {
+                tv: true,
+                lamp: true,
+                phone: true,
+                fan: false,
+                fridge: false,
+                rice: false
+            },
+            isExpert: false
+        };
+
+        const appWatts = { ac: 400, rice: 380, fridge: 120, pump: 350, wm: 300, disp: 350 };
+        const v2lWatts = { tv: 60, lamp: 30, phone: 20, fan: 45, fridge: 120, rice: 350 };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            recalculateAll();
+        });
+
+        // Tab Navigation Switcher
+        function switchTab(tabId) {
+            const tabs = ['wizard', 'pln', 'v2l', 'battery'];
+            tabs.forEach(t => {
+                const content = document.getElementById(`tab-content-${t}`);
+                const desktopTab = document.getElementById(`dtab-${t}`);
+                const mobileTab = document.getElementById(`mb-${t}`);
+
+                if (t === tabId) {
+                    content.classList.remove('hidden');
+                    if (desktopTab) desktopTab.className = "py-3 text-xs font-bold border-b-2 border-cyber-neon text-cyber-neon flex items-center gap-2 transition-all";
+                    if (mobileTab) mobileTab.className = "flex flex-col items-center gap-1 p-1.5 text-cyber-neon";
+                } else {
+                    content.classList.add('hidden');
+                    if (desktopTab) desktopTab.className = "py-3 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-2 transition-all";
+                    if (mobileTab) mobileTab.className = "flex flex-col items-center gap-1 p-1.5 text-slate-400";
+                }
+            });
+        }
+
+        // Toggle Expert Mode
+        function toggleExpertMode(enable) {
+            state.isExpert = enable;
+            const panel = document.getElementById('expert-panel-view');
+            const btnOff = document.getElementById('btn-expert-off');
+            const btnOn = document.getElementById('btn-expert-on');
+
+            if (enable) {
+                panel.classList.remove('hidden');
+                btnOn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-cyber-neon text-cyber-bg";
+                btnOff.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white";
+            } else {
+                panel.classList.add('hidden');
+                btnOff.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-cyber-neon text-cyber-bg";
+                btnOn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white";
+            }
+        }
+
+        // Selectors
+        function selectMotor(type, volt, ah) {
+            state.motorType = type;
+            state.voltage = volt;
+            state.batteryAh = ah;
+            updateSelectionStyles('m', type, 'card-active-neon');
+            document.getElementById('label-selected-voltage').innerText = `${volt}V Nominal`;
+            recalculateAll();
+        }
+
+        function selectCharger(type, amps) {
+            state.chargerType = type;
+            state.chargerAmps = amps;
+            updateSelectionStyles('c', type, 'card-active-neon');
+            recalculateAll();
+        }
+
+        function selectCable(type) {
+            state.cableType = type;
+            updateSelectionStyles('k', type, 'card-active-neon');
+            recalculateAll();
+        }
+
+        function selectPLN(va) {
+            state.plnCapacity = va;
+            updateSelectionStyles('pln', va, 'card-active-blue');
+            recalculateAll();
+        }
+
+        function toggleDevice(dev) {
+            state.appliances[dev] = !state.appliances[dev];
+            const btn = document.getElementById(`dev-${dev}`);
+            if (state.appliances[dev]) {
+                btn.className = "glass-card card-active-blue p-3 rounded-xl text-left flex items-center justify-between";
+                btn.querySelector('i').className = "w-4 h-4 text-cyber-blue";
+            } else {
+                btn.className = "glass-card p-3 rounded-xl text-left flex items-center justify-between";
+                btn.querySelector('i').className = "w-4 h-4 text-slate-500";
+            }
+            recalculateAll();
+        }
+
+        function toggleV2L(item) {
+            state.v2lItems[item] = !state.v2lItems[item];
+            const btn = document.getElementById(`v2l-${item}`);
+            if (state.v2lItems[item]) {
+                btn.className = "glass-card card-active-blue p-3 rounded-xl text-center space-y-1";
+            } else {
+                btn.className = "glass-card p-3 rounded-xl text-center space-y-1";
+            }
+            recalculateAll();
+        }
+
+        function updateSelectionStyles(prefix, selectedVal, activeClass) {
+            document.querySelectorAll(`[id^="${prefix}-"]`).forEach(el => {
+                el.classList.remove('card-active-neon', 'card-active-blue', 'card-active-yellow');
+            });
+            const activeEl = document.getElementById(`${prefix}-${selectedVal}`);
+            if (activeEl) activeEl.classList.add(activeClass);
+        }
+
+        // RECALCULATE ENGINE (Central Connected Logic)
+        function recalculateAll() {
+            // 1. Calculate Charger DC & AC Wattage
+            const dcWatt = state.voltage * state.chargerAmps;
+            const eff = 0.88; // 88% efficiency
+            const acWatt = Math.round(dcWatt / eff);
+            const acAmps = (acWatt / 220).toFixed(2);
+
+            // Time & Cost Estimation
+            const hoursFull = ((state.batteryAh / state.chargerAmps) * 1.15).toFixed(1); // 15% loss
+            const kwhTotal = ((acWatt * hoursFull) / 1000).toFixed(2);
+            const rupiahCost = Math.round(kwhTotal * 1444.70);
+
+            document.getElementById('res-watt').innerText = `~${acWatt} Watt`;
+            document.getElementById('res-amps').innerText = `~${acAmps} A`;
+            document.getElementById('res-time').innerText = `~${hoursFull} Jam`;
+            document.getElementById('res-cost').innerText = `~Rp ${rupiahCost.toLocaleString('id-ID')}`;
+
+            // 2. Safety Traffic Light Analysis
+            let cableMaxAmp = 5;
+            let cableDescText = "";
+
+            if (state.cableType === 'unknown' || state.cableType === 'thin') {
+                cableMaxAmp = 5;
+                cableDescText = "Kabel dipilih: Tipis (0.75mm²). Maksimum aman 5A (~1000W).";
+            } else if (state.cableType === 'std') {
+                cableMaxAmp = 10;
+                cableDescText = "Kabel dipilih: Standar SNI (1.5mm²). Maksimum aman 10A (~2200W).";
+            } else {
+                cableMaxAmp = 20;
+                cableDescText = "Kabel dipilih: Tebal Heavy (2.5mm²-4mm²). Maksimum aman 20A+.";
+            }
+
+            document.getElementById('cable-sync-text').innerText = cableDescText;
+
+            const cardBox = document.getElementById('safety-card-box');
+            const statusIcon = document.getElementById('status-icon');
+            const statusIconBg = document.getElementById('status-icon-bg');
+            const statusTitle = document.getElementById('status-title');
+            const statusDesc = document.getElementById('status-desc');
+            const actionBadge = document.getElementById('action-badge');
+
+            if (state.chargerAmps > cableMaxAmp) {
+                // RED - DANGER
+                cardBox.className = "glass-panel p-6 rounded-3xl border-2 border-cyber-danger glow-danger space-y-5 transition-all sticky top-20";
+                statusIconBg.className = "w-20 h-20 mx-auto rounded-3xl bg-cyber-danger/10 border border-cyber-danger/40 flex items-center justify-center";
+                statusIcon.setAttribute('data-lucide', 'flame');
+                statusIcon.className = "w-10 h-10 text-cyber-danger";
+                statusTitle.className = "text-2xl font-black text-cyber-danger tracking-tight";
+                statusTitle.innerText = "BAHAYA KABEL MELELEH!";
+                statusDesc.innerText = `Arus charger (${state.chargerAmps}A) melebihi batas aman kabel pilihanmu (${cableMaxAmp}A). Isolasi kabel berisiko terbakar & meleh!`;
+                
+                actionBadge.className = "p-3 rounded-xl bg-cyber-danger/10 border border-cyber-danger/30 text-cyber-danger text-xs font-semibold flex items-center justify-center gap-2 text-center";
+                actionBadge.innerHTML = `<i data-lucide="x-circle" class="w-4 h-4 flex-shrink-0"></i> <span>Ganti kabel ke minimal 2.5 mm²!</span>`;
+            } else if (state.chargerAmps === cableMaxAmp) {
+                // YELLOW - WARNING
+                cardBox.className = "glass-panel p-6 rounded-3xl border-2 border-cyber-yellow glow-yellow space-y-5 transition-all sticky top-20";
+                statusIconBg.className = "w-20 h-20 mx-auto rounded-3xl bg-cyber-yellow/10 border border-cyber-yellow/40 flex items-center justify-center";
+                statusIcon.setAttribute('data-lucide', 'alert-triangle');
+                statusIcon.className = "w-10 h-10 text-cyber-yellow";
+                statusTitle.className = "text-2xl font-black text-cyber-yellow tracking-tight";
+                statusTitle.innerText = "KABEL POTENSI HANGAT";
+                statusDesc.innerText = `Arus charger berada di batas maksimum kabel (${cableMaxAmp}A). Kabel akan terasa hangat jika dicolok lebih dari 2 jam.`;
+
+                actionBadge.className = "p-3 rounded-xl bg-cyber-yellow/10 border border-cyber-yellow/30 text-cyber-yellow text-xs font-semibold flex items-center justify-center gap-2 text-center";
+                actionBadge.innerHTML = `<i data-lucide="eye" class="w-4 h-4 flex-shrink-0"></i> <span>Awasi & raba kabel secara berkala</span>`;
+            } else {
+                // GREEN - SAFE
+                cardBox.className = "glass-panel p-6 rounded-3xl border-2 border-cyber-neon glow-neon space-y-5 transition-all sticky top-20";
+                statusIconBg.className = "w-20 h-20 mx-auto rounded-3xl bg-cyber-neon/10 border border-cyber-neon/40 flex items-center justify-center";
+                statusIcon.setAttribute('data-lucide', 'shield-check');
+                statusIcon.className = "w-10 h-10 text-cyber-neon";
+                statusTitle.className = "text-2xl font-black text-cyber-neon tracking-tight";
+                statusTitle.innerText = "KABEL & COLOKAN AMAN!";
+                statusDesc.innerText = "Kombinasi arus charger dan ukuran kabel sangat seimbang. Risiko leleh 0% dan aman untuk pengisian rutin.";
+
+                actionBadge.className = "p-3 rounded-xl bg-cyber-neon/10 border border-cyber-neon/30 text-cyber-neon text-xs font-semibold flex items-center justify-center gap-2 text-center";
+                actionBadge.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 flex-shrink-0"></i> <span>Boleh Ditinggal Tidur Semalaman</span>`;
+            }
+
+            // 3. PLN Guard MCB Calculations
+            let totalApplianceWatts = 0;
+            for (let k in state.appliances) {
+                if (state.appliances[k]) totalApplianceWatts += appWatts[k];
+            }
+
+            const totalPlnLoadWatts = totalApplianceWatts + acWatt;
+            const safeLimitWatts = state.plnCapacity * 0.85;
+            const totalAmpsPln = (totalPlnLoadWatts / 220).toFixed(2);
+            const mcbCapacityAmps = (state.plnCapacity / 220).toFixed(2);
+            const percentageLoad = Math.min(Math.round((totalPlnLoadWatts / state.plnCapacity) * 100), 100);
+
+            document.getElementById('pln-amp-badge').innerText = `${totalAmpsPln} A / ${mcbCapacityAmps} A`;
+            document.getElementById('mcb-watt-text').innerText = `${totalPlnLoadWatts} W / ${state.plnCapacity} W`;
+            document.getElementById('mcb-safe-text').innerText = `Safety: ${Math.round(safeLimitWatts)} W`;
+            document.getElementById('mcb-max-text').innerText = `${state.plnCapacity} VA`;
+
+            const progressBar = document.getElementById('mcb-bar');
+            progressBar.style.width = `${percentageLoad}%`;
+
+            const diagTitle = document.getElementById('mcb-diag-title');
+            const diagDesc = document.getElementById('mcb-diag-desc');
+            const diagBox = document.getElementById('mcb-diag-box');
+
+            if (totalPlnLoadWatts > state.plnCapacity) {
+                progressBar.className = "bg-cyber-danger h-full rounded-full transition-all duration-500";
+                diagBox.className = "p-4 rounded-2xl bg-cyber-danger/10 border border-cyber-danger/30 text-xs space-y-2";
+                diagTitle.className = "font-black text-cyber-danger flex items-center gap-2 text-sm";
+                diagTitle.innerHTML = `<i data-lucide="alert-octagon" class="w-5 h-5"></i> MCB PASTI JEPRET / TURUN!`;
+                diagDesc.innerHTML = `Total beban (${totalPlnLoadWatts}W) sudah melebihi kapasitas meteran PLN (${state.plnCapacity}VA). Matikan AC atau Rice Cooker terlebih dahulu!`;
+            } else if (totalPlnLoadWatts > safeLimitWatts) {
+                progressBar.className = "bg-cyber-yellow h-full rounded-full transition-all duration-500";
+                diagBox.className = "p-4 rounded-2xl bg-cyber-yellow/10 border border-cyber-yellow/30 text-xs space-y-2";
+                diagTitle.className = "font-black text-cyber-yellow flex items-center gap-2 text-sm";
+                diagTitle.innerHTML = `<i data-lucide="alert-triangle" class="w-5 h-5"></i> WASPADA: METERAN PAS-PASAN`;
+                diagDesc.innerHTML = `Sisa daya rumah tinggal <strong>${state.plnCapacity - totalPlnLoadWatts} Watt</strong>. Hindari menyalakan pompa air saat mengecas.`;
+            } else {
+                progressBar.className = "bg-cyber-neon h-full rounded-full transition-all duration-500";
+                diagBox.className = "p-4 rounded-2xl bg-cyber-neon/10 border border-cyber-neon/30 text-xs space-y-2";
+                diagTitle.className = "font-black text-cyber-neon flex items-center gap-2 text-sm";
+                diagTitle.innerHTML = `<i data-lucide="shield-check" class="w-5 h-5"></i> AMAN! MCB TIDAK AKAN JEPRET`;
+                diagDesc.innerHTML = `Sisa daya rumahmu masih ada <strong>${state.plnCapacity - totalPlnLoadWatts} Watt</strong>. Sangat aman mengecas motor listrik.`;
+            }
+
+            // 4. V2L Inverter Calculation
+            let v2lTotalWatts = 0;
+            for (let k in state.v2lItems) {
+                if (state.v2lItems[k]) v2lTotalWatts += v2lWatts[k];
+            }
+
+            const totalBatteryWh = state.voltage * state.batteryAh;
+            const usableWh = totalBatteryWh * 0.80; // 80% depth of discharge
+            const v2lHours = v2lTotalWatts > 0 ? (usableWh / v2lTotalWatts).toFixed(1) : "0";
+            const dcAmpsDraw = v2lTotalWatts > 0 ? (v2lTotalWatts / state.voltage).toFixed(2) : "0";
+
+            document.getElementById('v2l-hours-text').innerText = `~${v2lHours} Jam`;
+            document.getElementById('v2l-watt-total').innerText = `${v2lTotalWatts} Watt`;
+            document.getElementById('v2l-dc-amps').innerText = `${dcAmpsDraw} Ampere`;
+            document.getElementById('v2l-motor-desc').innerText = `Menggunakan Baterai ${state.voltage}V ${state.batteryAh}Ah (${state.motorType.toUpperCase()})`;
+
+            // 5. Update Expert Mode Dynamic Fields
+            document.getElementById('exp-v').value = state.voltage;
+            document.getElementById('exp-a').value = state.chargerAmps;
+            document.getElementById('exp-ah').value = state.batteryAh;
+            recalcExpert();
+
+            lucide.createIcons();
+        }
+
+        function recalcExpert() {
+            const v = parseFloat(document.getElementById('exp-v').value) || 72;
+            const a = parseFloat(document.getElementById('exp-a').value) || 3;
+            const ah = parseFloat(document.getElementById('exp-ah').value) || 30;
+            const eff = (parseFloat(document.getElementById('exp-eff').value) || 88) / 100;
+
+            const dcw = Math.round(v * a);
+            const acw = Math.round(dcw / eff);
+            const crate = (a / ah).toFixed(2);
+            
+            let cable = "0.75 mm²";
+            if (a > 15) cable = "2.5 mm² - 4.0 mm²";
+            else if (a > 8) cable = "1.5 mm²";
+
+            document.getElementById('exp-res-dcw').innerText = `${dcw} W`;
+            document.getElementById('exp-res-acw').innerText = `${acw} W`;
+            document.getElementById('exp-res-crate').innerText = `${crate} C`;
+            document.getElementById('exp-res-cable').innerText = cable;
+        }
+    </script>
+</body>
+</html>
