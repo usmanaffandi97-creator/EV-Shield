@@ -1,11 +1,10 @@
 {
   "name": "EV-Calc & Safety Shield",
   "short_name": "EV Calc",
-  "description": "Kalkulator Keamanan Listrik & Charging Motor Listrik",
-  "start_url": "/",
+  "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#0a0f1d",
-  "theme_color": "#00FF9D",
+  "theme_color": "#00FF9D"
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/5405/5405969.png",
